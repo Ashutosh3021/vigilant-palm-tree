@@ -1,4 +1,4 @@
 1:"$Sreact.fragment"
 2:I[39756,["/vigilant-palm-tree/_next/static/chunks/630deb95d3a21a1c.js","/vigilant-palm-tree/_next/static/chunks/247eb132b7f7b574.js"],"default"]
 3:I[37457,["/vigilant-palm-tree/_next/static/chunks/630deb95d3a21a1c.js","/vigilant-palm-tree/_next/static/chunks/247eb132b7f7b574.js"],"default"]
-0:{"buildId":"dtOB0boC3_6CDmPjuVW9y","rsc":["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","template":["$","$L3",null,{}]}]]}],"loading":null,"isPartial":false}
+0:{"buildId":"77KV-1kU5mwgEcV5Rh48A","rsc":["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","template":["$","$L3",null,{}]}]]}],"loading":null,"isPartial":false}
