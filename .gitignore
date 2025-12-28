@@ -1,0 +1,134 @@
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# Next.js
+.next/
+out/
+dist/
+build/
+
+# Environment variables
+.env*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Coverage
+coverage/
+.nyc_output/
+
+# TypeScript
+*.tsbuildinfo
+.next/
+dist/
+
+# Database
+*.db
+*.db-journal
+
+# Production
+public/build/
+
+# Local files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Next.js specific
+.next/cache/
+.next/static/chunks/
+.next/static/development/
+.next/server/
+.next/trace/
+
+# Temporary files
+tmp/
+temp/
+
+# Testing
+coverage/
+junit.xml
+*.gcda
+*.gcno
+
+# Browser extensions
+devtools-protocol/
+
+# NPM
+node_modules/
+npm-debug.log
+.npm
+.npmrc
+
+# Build outputs
+*.min.js
+*.min.css
+
+# Sensitive files
+config/
+secrets/
+private/
+
+# Cache directories
+.cache/
+.cargo/
+.target/
+
+# IDE specific
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/settings.json
+*.sublime-project
+*.sublime-workspace
+
+# Editor specific
+.history/
+.vim/
+.atom/
+
+# System files
+ehthumbs.db
+Icon?
+Thumbs.db
+.DS_Store
+
+# Browser-sync
+.browser-sync/
+.browser-sync-client/
+
+# Output of `npx browserslist@latest --update-db`
+browserslist-cache.json
+
+# Temporary file created by Next.js
+.next/types/
+.next/server/
+.next/static/chunks/
+.next/static/webpack/
+.next/static/css/
+.next/static/media/
+.next/cache/
+.next/standalone/
+.next/trace/
+
+# TypeScript type check worker
+tsconfig.tsbuildinfo
