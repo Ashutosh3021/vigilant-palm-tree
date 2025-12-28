@@ -11,6 +11,19 @@ export interface Task {
   date: string
   created_at: string
   updated_at: string
+  // Recurrence properties
+  isRecurring?: boolean
+  recurrenceDays?: RecurrenceDays
+}
+
+export interface RecurrenceDays {
+  monday?: boolean
+  tuesday?: boolean
+  wednesday?: boolean
+  thursday?: boolean
+  friday?: boolean
+  saturday?: boolean
+  sunday?: boolean
 }
 
 export interface DailyScore {

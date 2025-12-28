@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Plus } from "lucide-react"
 import { createTask as createTaskInStorage } from "@/lib/storage"
+import type { RecurrenceDays } from "@/lib/types"
 
 interface TaskFormProps {
   onTaskCreated?: () => void
@@ -17,9 +19,33 @@ interface TaskFormProps {
 export function TaskForm({ onTaskCreated }: TaskFormProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [recurrenceDays, setRecurrenceDays] = useState<RecurrenceDays>({
+    monday: false,
+    tuesday: false,
+    wednesday: false,
+    thursday: false,
+    friday: false,
+    saturday: false,
+    sunday: false,
+  })
+
+  const handleDayToggle = (day: keyof RecurrenceDays) => {
+    setRecurrenceDays(prev => ({
+      ...prev,
+      [day]: !prev[day]
+    }))
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    
+    // Validation: if recurring is enabled, at least one day must be selected
+    if (isRecurring && !Object.values(recurrenceDays).some(day => day)) {
+      alert("Please select at least one day for recurring task")
+      return
+    }
+    
     setIsLoading(true)
 
     const formData = new FormData(e.currentTarget)
@@ -35,6 +61,8 @@ export function TaskForm({ onTaskCreated }: TaskFormProps) {
       date,
       completed: false,
       priority_weight: 0,
+      isRecurring,
+      recurrenceDays: isRecurring ? recurrenceDays : undefined,
     })
 
     setIsLoading(false)
@@ -43,6 +71,16 @@ export function TaskForm({ onTaskCreated }: TaskFormProps) {
 
     // Reset form
     e.currentTarget.reset()
+    setIsRecurring(false)
+    setRecurrenceDays({
+      monday: false,
+      tuesday: false,
+      wednesday: false,
+      thursday: false,
+      friday: false,
+      saturday: false,
+      sunday: false,
+    })
   }
 
   if (!isOpen) {
@@ -71,6 +109,37 @@ export function TaskForm({ onTaskCreated }: TaskFormProps) {
           </SelectContent>
         </Select>
         <Input name="date" type="date" defaultValue={new Date().toISOString().split("T")[0]} required />
+        
+        {/* Recurrence Section */}
+        <div className="pt-2 border-t">
+          <div className="flex items-center gap-2 mb-3">
+            <Checkbox 
+              id="isRecurring"
+              checked={isRecurring}
+              onCheckedChange={(checked) => setIsRecurring(!!checked)}
+            />
+            <label htmlFor="isRecurring" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              Recurring Task
+            </label>
+          </div>
+          
+          {isRecurring && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">Select days to repeat:</p>
+              <div className="grid grid-cols-7 gap-2">
+                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
+                  <div key={day} className="flex flex-col items-center">
+                    <label className="text-xs text-muted-foreground capitalize">{day.substring(0, 3)}</label>
+                    <Checkbox
+                      checked={!!recurrenceDays[day as keyof RecurrenceDays]}
+                      onCheckedChange={() => handleDayToggle(day as keyof RecurrenceDays)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
       <div className="flex gap-2">
         <Button type="submit" disabled={isLoading} className="flex-1 bg-[#1e90ff] hover:bg-[#4682b4]">

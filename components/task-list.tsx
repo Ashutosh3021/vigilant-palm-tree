@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Trash2 } from "lucide-react"
 import { useState } from "react"
-import { updateTask, deleteTask as deleteTaskFromStorage, getTasksByDate, upsertDailyScore } from "@/lib/storage"
+import { updateTask, deleteTask as deleteTaskFromStorage, getTasksByDate, upsertDailyScore, createTask as createTaskInStorage } from "@/lib/storage"
 import { calculateDailyScore } from "@/lib/score-calculator"
 
 interface TaskListProps {
@@ -50,10 +50,49 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
 
   const handleToggleTask = async (taskId: string, completed: boolean) => {
     setLoading(taskId)
+    
+    // Get the task to check if it's recurring
+    const task = tasks.find(t => t.id === taskId)
+    
+    if (task && task.isRecurring && task.recurrenceDays && completed) {
+      // If it's a recurring task being marked as completed
+      // Create new instances for the next occurrence dates
+      createNextRecurrenceInstances(task)
+    }
+    
     updateTask(taskId, { completed })
     recalculateDailyScore()
     setLoading(null)
     onTaskUpdated?.()
+  }
+  
+  const createNextRecurrenceInstances = (task: Task) => {
+    if (!task.recurrenceDays) return
+    
+    const today = new Date()
+    
+    // Check the next 7 days to see if any match the recurrence pattern
+    for (let i = 1; i <= 7; i++) {
+      const nextDate = new Date(today)
+      nextDate.setDate(today.getDate() + i)
+      
+      const dayOfWeek = nextDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
+      
+      if (task.recurrenceDays[dayOfWeek as keyof typeof task.recurrenceDays]) {
+        // Create a new instance of the task for this date
+        const newTask = {
+          ...task,
+          id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Generate new ID
+          date: nextDate.toISOString().split('T')[0],
+          completed: false, // New instances are not completed
+          isRecurring: undefined, // Remove recurrence flag from new instance
+          recurrenceDays: undefined, // Remove recurrence days from new instance
+        }
+        
+        // Create the new task
+        createTaskInStorage(newTask)
+      }
+    }
   }
 
   const handleDeleteTask = async (taskId: string) => {
@@ -94,6 +133,11 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
                 <span className={`text-xs px-2 py-0.5 rounded-full border ${getPriorityColor(task.priority)}`}>
                   {task.priority}
                 </span>
+                {task.isRecurring && (
+                  <span className="text-xs px-2 py-0.5 rounded-full border bg-blue-100 text-blue-800 border-blue-200">
+                    Recurring
+                  </span>
+                )}
               </div>
               {task.description && <p className="text-sm text-muted-foreground mt-1">{task.description}</p>}
             </div>
