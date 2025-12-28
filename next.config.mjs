@@ -1,4 +1,7 @@
 /** @type {import('next').NextConfig} */
+
+const isProd = process.env.NODE_ENV === 'production';
+
 const nextConfig = {
   output: "export",
   reactStrictMode: true,
@@ -6,8 +9,8 @@ const nextConfig = {
   images: {
     unoptimized: true
   },
-  basePath: "/vigilant-palm-tree",
-  assetPrefix: "/vigilant-palm-tree/"
+  basePath: isProd ? "/vigilant-palm-tree" : "",
+  assetPrefix: isProd ? "/vigilant-palm-tree/" : ""
 };
 
 export default nextConfig;
