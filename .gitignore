@@ -1,8 +1,5 @@
 # Dependencies
 node_modules/
-pnpm-lock.yaml
-yarn.lock
-package-lock.json
 
 # Next.js
 .next/
@@ -13,6 +10,10 @@ build/
 # Environment variables
 .env*
 !.env.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # IDE
 .vscode/
@@ -25,21 +26,24 @@ build/
 .DS_Store
 Thumbs.db
 desktop.ini
+ehthumbs.db
+Icon?
 
 # Logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+npm-debug.log
 
 # Coverage
+test-logs/
 coverage/
 .nyc_output/
 
 # TypeScript
 *.tsbuildinfo
-.next/
-dist/
+tsconfig.tsbuildinfo
 
 # Database
 *.db
@@ -48,35 +52,16 @@ dist/
 # Production
 public/build/
 
-# Local files
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Next.js specific
-.next/cache/
-.next/static/chunks/
-.next/static/development/
-.next/server/
-.next/trace/
-
 # Temporary files
 tmp/
 temp/
 
 # Testing
-coverage/
 junit.xml
 *.gcda
 *.gcno
 
-# Browser extensions
-devtools-protocol/
-
 # NPM
-node_modules/
-npm-debug.log
 .npm
 .npmrc
 
@@ -106,12 +91,6 @@ private/
 .vim/
 .atom/
 
-# System files
-ehthumbs.db
-Icon?
-Thumbs.db
-.DS_Store
-
 # Browser-sync
 .browser-sync/
 .browser-sync-client/
@@ -119,16 +98,51 @@ Thumbs.db
 # Output of `npx browserslist@latest --update-db`
 browserslist-cache.json
 
-# Temporary file created by Next.js
-.next/types/
-.next/server/
-.next/static/chunks/
-.next/static/webpack/
-.next/static/css/
-.next/static/media/
-.next/cache/
+# Next.js standalone output
 .next/standalone/
-.next/trace/
+.next/static/
 
-# TypeScript type check worker
-tsconfig.tsbuildinfo
+# Testing and debugging
+.vs/
+.cpcache/
+
+# Runtime data
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary folders
+*.tmp
+*.temp
+
+# IDE - WebStorm
+.idea/*
+!.idea/codeStyles
+!.idea/inspectionProfiles
+!.idea/runConfigurations
+
+# macOS
+*.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+
+# Linux
+*~
+
+# Compiled binary addons (C++)
+build/Release/
+
+# Yarn PnP
+.pnp.cjs
+.pnp.loader.mjs
+
+# Turbopack cache
+.turbopack/
+
+# Output of Next.js static export
+docs/

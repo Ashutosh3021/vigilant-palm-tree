@@ -6,6 +6,7 @@ export interface Task {
   title: string
   description: string | null
   priority: Priority
+  priority_weight?: number
   completed: boolean
   date: string
   created_at: string
@@ -27,4 +28,12 @@ export interface DayData {
   date: string
   score: number
   level: number
+}
+
+export interface UserPreferences {
+  name: string
+  goal: string
+  workingHours: { start: string; end: string }
+  dayResetTime: string
+  hasCompletedOnboarding: boolean
 }

@@ -1,11 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  output: "export",
+  reactStrictMode: true,
+  trailingSlash: true,
   images: {
-    unoptimized: true,
+    unoptimized: true
   },
-}
+  basePath: "/vigilant-palm-tree",
+  assetPrefix: "/vigilant-palm-tree/"
+};
 
-export default nextConfig
+export default nextConfig;
