@@ -2,33 +2,60 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import type { Task } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Plus } from "lucide-react"
-import { createTask as createTaskInStorage } from "@/lib/storage"
+import { createTask as createTaskInStorage, updateTask } from "@/lib/storage"
 import type { RecurrenceDays } from "@/lib/types"
 
 interface TaskFormProps {
   onTaskCreated?: () => void
+  taskToEdit?: Task | null
 }
 
-export function TaskForm({ onTaskCreated }: TaskFormProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function TaskForm({ onTaskCreated, taskToEdit }: TaskFormProps) {
+  const [isOpen, setIsOpen] = useState(!!taskToEdit) // Open if editing a task
   const [isLoading, setIsLoading] = useState(false)
-  const [isRecurring, setIsRecurring] = useState(false)
-  const [recurrenceDays, setRecurrenceDays] = useState<RecurrenceDays>({
-    monday: false,
-    tuesday: false,
-    wednesday: false,
-    thursday: false,
-    friday: false,
-    saturday: false,
-    sunday: false,
-  })
+  const [isRecurring, setIsRecurring] = useState(!!taskToEdit && !!taskToEdit.isRecurring)
+  const [recurrenceDays, setRecurrenceDays] = useState<RecurrenceDays>(
+    taskToEdit?.isRecurring && taskToEdit.recurrenceDays 
+      ? taskToEdit.recurrenceDays 
+      : {
+          monday: false,
+          tuesday: false,
+          wednesday: false,
+          thursday: false,
+          friday: false,
+          saturday: false,
+          sunday: false,
+        }
+  )
+  
+  // Update state when taskToEdit changes (for editing)
+  useEffect(() => {
+    if (taskToEdit) {
+      setIsOpen(true)
+      setIsRecurring(!!taskToEdit.isRecurring)
+      setRecurrenceDays(
+        taskToEdit.isRecurring && taskToEdit.recurrenceDays 
+          ? taskToEdit.recurrenceDays 
+          : {
+              monday: false,
+              tuesday: false,
+              wednesday: false,
+              thursday: false,
+              friday: false,
+              saturday: false,
+              sunday: false,
+            }
+      )
+    }
+  }, [taskToEdit])
 
   const handleDayToggle = (day: keyof RecurrenceDays) => {
     setRecurrenceDays(prev => ({
@@ -54,16 +81,29 @@ export function TaskForm({ onTaskCreated }: TaskFormProps) {
     const priority = formData.get("priority") as "High" | "Medium" | "Low"
     const date = formData.get("date") as string
 
-    createTaskInStorage({
-      title,
-      description: description || "",
-      priority,
-      date,
-      completed: false,
-      priority_weight: 0,
-      isRecurring,
-      recurrenceDays: isRecurring ? recurrenceDays : undefined,
-    })
+    if (taskToEdit) {
+      // Update existing task
+      updateTask(taskToEdit.id, {
+        title,
+        description: description || "",
+        priority,
+        date,
+        isRecurring,
+        recurrenceDays: isRecurring ? recurrenceDays : undefined,
+      })
+    } else {
+      // Create new task
+      createTaskInStorage({
+        title,
+        description: description || "",
+        priority,
+        date,
+        completed: false,
+        priority_weight: 0,
+        isRecurring,
+        recurrenceDays: isRecurring ? recurrenceDays : undefined,
+      })
+    }
 
     setIsLoading(false)
     setIsOpen(false)
@@ -83,7 +123,7 @@ export function TaskForm({ onTaskCreated }: TaskFormProps) {
     })
   }
 
-  if (!isOpen) {
+  if (!isOpen && !taskToEdit) { // Don't show button when editing (form is always open)
     return (
       <Button onClick={() => setIsOpen(true)} className="w-full bg-[#1e90ff] hover:bg-[#4682b4]" size="lg">
         <Plus className="h-5 w-5 mr-2" />
@@ -94,11 +134,22 @@ export function TaskForm({ onTaskCreated }: TaskFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-6 border rounded-lg bg-card">
-      <h3 className="font-semibold text-lg">New Task</h3>
+      <h3 className="font-semibold text-lg">{taskToEdit ? "Edit Task" : "New Task"}</h3>
       <div className="space-y-3">
-        <Input name="title" placeholder="Task title" required className="text-base" />
-        <Textarea name="description" placeholder="Description (optional)" rows={3} />
-        <Select name="priority" defaultValue="Medium" required>
+        <Input 
+          name="title" 
+          placeholder="Task title" 
+          required 
+          className="text-base" 
+          defaultValue={taskToEdit?.title || ""}
+        />
+        <Textarea 
+          name="description" 
+          placeholder="Description (optional)" 
+          rows={3} 
+          defaultValue={taskToEdit?.description || ""}
+        />
+        <Select name="priority" defaultValue={taskToEdit?.priority || "Medium"} required>
           <SelectTrigger>
             <SelectValue placeholder="Priority" />
           </SelectTrigger>
@@ -108,7 +159,12 @@ export function TaskForm({ onTaskCreated }: TaskFormProps) {
             <SelectItem value="Low">Low Priority</SelectItem>
           </SelectContent>
         </Select>
-        <Input name="date" type="date" defaultValue={new Date().toISOString().split("T")[0]} required />
+        <Input 
+          name="date" 
+          type="date" 
+          defaultValue={taskToEdit?.date || new Date().toISOString().split("T")[0]} 
+          required 
+        />
         
         {/* Recurrence Section */}
         <div className="pt-2 border-t">
@@ -143,9 +199,28 @@ export function TaskForm({ onTaskCreated }: TaskFormProps) {
       </div>
       <div className="flex gap-2">
         <Button type="submit" disabled={isLoading} className="flex-1 bg-[#1e90ff] hover:bg-[#4682b4]">
-          {isLoading ? "Adding..." : "Add Task"}
+          {isLoading ? (taskToEdit ? "Updating..." : "Adding...") : (taskToEdit ? "Update Task" : "Add Task")}
         </Button>
-        <Button type="button" variant="outline" onClick={() => setIsOpen(false)} className="flex-1">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={() => {
+            setIsOpen(false);
+            // Reset taskToEdit when cancelling edit
+            if (taskToEdit) {
+              setIsRecurring(false);
+              setRecurrenceDays({
+                monday: false,
+                tuesday: false,
+                wednesday: false,
+                thursday: false,
+                friday: false,
+                saturday: false,
+                sunday: false,
+              });
+            }
+          }} 
+          className="flex-1">
           Cancel
         </Button>
       </div>

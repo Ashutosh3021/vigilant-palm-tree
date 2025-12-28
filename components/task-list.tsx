@@ -3,10 +3,11 @@
 import type { Task } from "@/lib/types"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
-import { Trash2 } from "lucide-react"
+import { Trash2, Edit } from "lucide-react"
 import { useState } from "react"
 import { updateTask, deleteTask as deleteTaskFromStorage, getTasksByDate, upsertDailyScore, createTask as createTaskInStorage } from "@/lib/storage"
 import { calculateDailyScore } from "@/lib/score-calculator"
+import { TaskForm } from "@/components/task-form"
 
 interface TaskListProps {
   tasks: Task[]
@@ -15,6 +16,7 @@ interface TaskListProps {
 
 export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
   const [loading, setLoading] = useState<string | null>(null)
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null)
 
   const sortedTasks = [...tasks].sort((a, b) => {
     const priorityOrder = { High: 0, Medium: 1, Low: 2 }
@@ -102,8 +104,12 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
     setLoading(null)
     onTaskUpdated?.()
   }
+  
+  const handleEditTask = (task: Task) => {
+    setTaskToEdit(task)
+  }
 
-  if (tasks.length === 0) {
+  if (tasks.length === 0 && !taskToEdit) {
     return (
       <div className="text-center py-12 text-muted-foreground">
         <p className="text-lg">No tasks yet. Add your first task to get started!</p>
@@ -113,45 +119,64 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
 
   return (
     <div className="space-y-3">
-      {sortedTasks.map((task) => (
-        <div
-          key={task.id}
-          className={`p-4 border rounded-lg transition-all ${task.completed ? "opacity-60 bg-muted/30" : "bg-card"}`}
-        >
-          <div className="flex items-start gap-3">
-            <Checkbox
-              checked={task.completed}
-              onCheckedChange={(checked) => handleToggleTask(task.id, checked as boolean)}
-              disabled={loading === task.id}
-              className="mt-1"
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h4 className={`font-medium ${task.completed ? "line-through text-muted-foreground" : ""}`}>
-                  {task.title}
-                </h4>
-                <span className={`text-xs px-2 py-0.5 rounded-full border ${getPriorityColor(task.priority)}`}>
-                  {task.priority}
-                </span>
-                {task.isRecurring && (
-                  <span className="text-xs px-2 py-0.5 rounded-full border bg-blue-100 text-blue-800 border-blue-200">
-                    Recurring
-                  </span>
-                )}
-              </div>
-              {task.description && <p className="text-sm text-muted-foreground mt-1">{task.description}</p>}
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleDeleteTask(task.id)}
-              disabled={loading === task.id}
+      {taskToEdit ? (
+        <TaskForm 
+          taskToEdit={taskToEdit} 
+          onTaskCreated={onTaskUpdated} 
+        />
+      ) : (
+        <>
+          {sortedTasks.map((task) => (
+            <div
+              key={task.id}
+              className={`p-4 border rounded-lg transition-all ${task.completed ? "opacity-60 bg-muted/30" : "bg-card"}`}
             >
-              <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-            </Button>
-          </div>
-        </div>
-      ))}
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  checked={task.completed}
+                  onCheckedChange={(checked) => handleToggleTask(task.id, checked as boolean)}
+                  disabled={loading === task.id}
+                  className="mt-1"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className={`font-medium ${task.completed ? "line-through text-muted-foreground" : ""}`}>
+                      {task.title}
+                    </h4>
+                    <span className={`text-xs px-2 py-0.5 rounded-full border ${getPriorityColor(task.priority)}`}>
+                      {task.priority}
+                    </span>
+                    {task.isRecurring && (
+                      <span className="text-xs px-2 py-0.5 rounded-full border bg-blue-100 text-blue-800 border-blue-200">
+                        Recurring
+                      </span>
+                    )}
+                  </div>
+                  {task.description && <p className="text-sm text-muted-foreground mt-1">{task.description}</p>}
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEditTask(task)}
+                    disabled={loading === task.id}
+                  >
+                    <Edit className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeleteTask(task.id)}
+                    disabled={loading === task.id}
+                  >
+                    <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
     </div>
   )
 }
