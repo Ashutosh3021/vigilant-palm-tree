@@ -18,7 +18,26 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
   const [loading, setLoading] = useState<string | null>(null)
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null)
 
-  const sortedTasks = [...tasks].sort((a, b) => {
+  // Filter tasks based on recurrence and date conditions
+  const filteredTasks = tasks.filter(task => {
+    const today = new Date().toISOString().split("T")[0];
+    
+    // If task date is in the future and it's not recurring, don't show it yet
+    if (task.date > today && !task.isRecurring) {
+      return false;
+    }
+    
+    // If task is recurring, check if today is one of the recurrence days
+    if (task.isRecurring && task.recurrenceDays) {
+      const todayDay = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+      return !!task.recurrenceDays[todayDay as keyof typeof task.recurrenceDays];
+    }
+    
+    // If task date is today or in the past, show it
+    return task.date <= today;
+  });
+
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
     const priorityOrder = { High: 0, Medium: 1, Low: 2 }
     return priorityOrder[a.priority] - priorityOrder[b.priority]
   })
@@ -108,8 +127,13 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
   const handleEditTask = (task: Task) => {
     setTaskToEdit(task)
   }
+  
+  const handleTaskEditComplete = () => {
+    setTaskToEdit(null);
+    onTaskUpdated?.();
+  }
 
-  if (tasks.length === 0 && !taskToEdit) {
+  if (filteredTasks.length === 0 && !taskToEdit) {
     return (
       <div className="text-center py-12 text-muted-foreground">
         <p className="text-lg">No tasks yet. Add your first task to get started!</p>
@@ -122,7 +146,7 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
       {taskToEdit ? (
         <TaskForm 
           taskToEdit={taskToEdit} 
-          onTaskCreated={onTaskUpdated} 
+          onTaskCreated={handleTaskEditComplete} 
         />
       ) : (
         <>

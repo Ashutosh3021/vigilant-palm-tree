@@ -218,6 +218,8 @@ export function TaskForm({ onTaskCreated, taskToEdit }: TaskFormProps) {
                 saturday: false,
                 sunday: false,
               });
+              // Notify parent to clear taskToEdit state
+              onTaskCreated?.();
             }
           }} 
           className="flex-1">
