@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { getUserPreferences } from "@/lib/storage"
 import { Button } from "@/components/ui/button"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -90,6 +91,9 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
           <div className="text-xs text-sidebar-foreground/60">
             <div>{new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}</div>
             <div className="mt-1">Day Reset: {resetTime}</div>
+          </div>
+          <div className="flex justify-end">
+            <ThemeToggle />
           </div>
         </div>
       )}

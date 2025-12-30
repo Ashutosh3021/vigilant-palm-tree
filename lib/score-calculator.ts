@@ -10,8 +10,8 @@ export function calculateDailyScore(tasks: Task[]): number {
   if (tasks.length === 0) return 0
 
   const completedTasks = tasks.filter((task) => task.completed)
-  const totalWeight = tasks.reduce((sum, task) => sum + PRIORITY_WEIGHTS[task.priority], 0)
-  const completedWeight = completedTasks.reduce((sum, task) => sum + PRIORITY_WEIGHTS[task.priority], 0)
+  const totalWeight = tasks.reduce((sum, task) => sum + (task.priority_weight || PRIORITY_WEIGHTS[task.priority]), 0)
+  const completedWeight = completedTasks.reduce((sum, task) => sum + (task.priority_weight || PRIORITY_WEIGHTS[task.priority]), 0)
 
   if (totalWeight === 0) return 0
 

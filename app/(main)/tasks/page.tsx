@@ -35,7 +35,7 @@ export default function TasksPage() {
       <TaskForm onTaskCreated={loadTasks} />
 
       {/* Priority Sliders - only show if there are tasks */}
-      {tasks.length > 0 && <PrioritySliders tasks={tasks} onUpdate={loadTasks} />}
+      {tasks.length > 0 && <PrioritySliders tasks={tasks} onPrioritiesChange={() => {}} onUpdate={loadTasks} />}
 
       {/* Task List */}
       <TaskList tasks={tasks} onTaskUpdated={loadTasks} />

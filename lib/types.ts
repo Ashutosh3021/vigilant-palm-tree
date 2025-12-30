@@ -14,6 +14,10 @@ export interface Task {
   // Recurrence properties
   isRecurring?: boolean
   recurrenceDays?: RecurrenceDays
+  // Weekly target hours
+  weeklyTargetHours?: number
+  // Category tags
+  category?: string
 }
 
 export interface RecurrenceDays {
@@ -49,4 +53,14 @@ export interface UserPreferences {
   workingHours: { start: string; end: string }
   dayResetTime: string
   hasCompletedOnboarding: boolean
+}
+
+export interface TimeEntry {
+  id: string
+  task_id: string
+  date: string
+  hours: number
+  description?: string
+  created_at: string
+  updated_at: string
 }

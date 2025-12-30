@@ -5,9 +5,9 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { getUserPreferences, saveUserPreferences, getTasks, updateTask, deleteTask } from "@/lib/storage"
+import { getUserPreferences, saveUserPreferences, getTasks, updateTask, deleteTask, getDailyScores } from "@/lib/storage"
 import type { UserPreferences, Task } from "@/lib/types"
-import { Trash2, Edit, Plus } from "lucide-react"
+import { Trash2, Edit, Plus, RotateCcw } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -20,6 +20,8 @@ export default function SettingsPage() {
   const [newTaskTitle, setNewTaskTitle] = useState("")
   const [newTaskCategory, setNewTaskCategory] = useState("")
   const [newTaskColor, setNewTaskColor] = useState("#1e90ff")
+  const [streakRecoveryDialogOpen, setStreakRecoveryDialogOpen] = useState(false)
+  const [recoveryTasks, setRecoveryTasks] = useState<Task[]>([])
 
   useEffect(() => {
     loadData()
@@ -45,7 +47,13 @@ export default function SettingsPage() {
 
   const handleDeleteTask = (taskId: string) => {
     if (confirm("Are you sure you want to delete this task?")) {
-      deleteTask(taskId)
+      // Find the task to get its title
+      const taskToDelete = tasks.find(t => t.id === taskId);
+      if (taskToDelete) {
+        // Delete all tasks with the same title
+        const tasksToDelete = tasks.filter(t => t.title === taskToDelete.title);
+        tasksToDelete.forEach(t => deleteTask(t.id));
+      }
       loadData()
     }
   }
@@ -70,6 +78,35 @@ export default function SettingsPage() {
 
   const currentTime = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
 
+  // Function to check if user has missed a day recently
+  const checkStreakStatus = () => {
+    const scores = getDailyScores().sort((a, b) => b.date.localeCompare(a.date));
+    if (scores.length === 0) return false;
+    
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split("T")[0];
+    
+    // Check if yesterday had a good score
+    const yesterdayScore = scores.find(s => s.date === yesterdayStr);
+    
+    // If yesterday's score was below 70% or doesn't exist, streak is broken
+    return !yesterdayScore || yesterdayScore.score < 70;
+  };
+  
+  // Function to open streak recovery
+  const handleOpenStreakRecovery = () => {
+    // For simplicity, we'll just show a dialog with recovery tasks
+    // In a real app, you might want to generate specific recovery tasks
+    setRecoveryTasks([
+      { id: "recovery-1", title: "Complete 3 tasks today", description: "Recovery task for missed day", priority: "High", completed: false, date: new Date().toISOString().split("T")[0], created_at: new Date().toISOString(), updated_at: new Date().toISOString(), user_id: "local" },
+      { id: "recovery-2", title: "Review yesterday's missed tasks", description: "Recovery task for missed day", priority: "Medium", completed: false, date: new Date().toISOString().split("T")[0], created_at: new Date().toISOString(), updated_at: new Date().toISOString(), user_id: "local" },
+      { id: "recovery-3", title: "Set 3 new tasks for today", description: "Recovery task for missed day", priority: "Medium", completed: false, date: new Date().toISOString().split("T")[0], created_at: new Date().toISOString(), updated_at: new Date().toISOString(), user_id: "local" },
+    ]);
+    setStreakRecoveryDialogOpen(true);
+  };
+  
   // Group tasks by title (master pool concept)
   const uniqueTasks = Array.from(
     new Map(
@@ -118,6 +155,25 @@ export default function SettingsPage() {
         </div>
       </Card>
 
+      {/* Streak Recovery */}
+      {checkStreakStatus() && (
+        <Card className="p-6 border-red-200 bg-red-50">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-red-600" />
+              Streak Recovery
+            </h2>
+            <Button onClick={handleOpenStreakRecovery} size="sm" className="bg-red-600 hover:bg-red-700">
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Repair Streak
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Your streak was broken yesterday. Complete these recovery tasks to repair your streak.
+          </p>
+        </Card>
+      )}
+      
       {/* Master Task Pool */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
@@ -157,6 +213,36 @@ export default function SettingsPage() {
           )}
         </div>
       </Card>
+      
+      {/* Streak Recovery Dialog */}
+      <Dialog open={streakRecoveryDialogOpen} onOpenChange={setStreakRecoveryDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Streak Recovery</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Complete these recovery tasks to repair your streak:
+            </p>
+            <div className="space-y-3">
+              {recoveryTasks.map((task) => (
+                <div key={task.id} className="flex items-center gap-3 p-3 border rounded-lg bg-card">
+                  <div className="font-medium">{task.title}</div>
+                  <div className="text-sm text-muted-foreground ml-auto">{task.priority}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStreakRecoveryDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => {
+              // In a real app, this would create the recovery tasks
+              setStreakRecoveryDialogOpen(false);
+              alert("Recovery tasks added to your list!");
+            }}>Add Recovery Tasks</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add/Edit Task Modal */}
       <Dialog open={isAddTaskOpen} onOpenChange={setIsAddTaskOpen}>

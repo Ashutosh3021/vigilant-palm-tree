@@ -13,6 +13,16 @@ import { Plus } from "lucide-react"
 import { createTask as createTaskInStorage, updateTask } from "@/lib/storage"
 import type { RecurrenceDays } from "@/lib/types"
 
+const PRIORITY_WEIGHTS = {
+  High: 30, // 30% as default for High priority
+  Medium: 20, // 20% as default for Medium priority
+  Low: 10, // 10% as default for Low priority
+}
+
+const getPriorityWeight = (priority: "High" | "Medium" | "Low"): number => {
+  return PRIORITY_WEIGHTS[priority];
+}
+
 interface TaskFormProps {
   onTaskCreated?: () => void
   taskToEdit?: Task | null
@@ -35,6 +45,8 @@ export function TaskForm({ onTaskCreated, taskToEdit }: TaskFormProps) {
           sunday: false,
         }
   )
+  const [weeklyTargetHours, setWeeklyTargetHours] = useState<number>(taskToEdit?.weeklyTargetHours || 0)
+  const [category, setCategory] = useState<string>(taskToEdit?.category || "")
   
   // Update state when taskToEdit changes (for editing)
   useEffect(() => {
@@ -54,6 +66,8 @@ export function TaskForm({ onTaskCreated, taskToEdit }: TaskFormProps) {
               sunday: false,
             }
       )
+      setWeeklyTargetHours(taskToEdit.weeklyTargetHours || 0)
+      setCategory(taskToEdit.category || "")
     }
   }, [taskToEdit])
 
@@ -80,6 +94,8 @@ export function TaskForm({ onTaskCreated, taskToEdit }: TaskFormProps) {
     const description = formData.get("description") as string
     const priority = formData.get("priority") as "High" | "Medium" | "Low"
     const date = formData.get("date") as string
+    const weeklyTargetHoursValue = formData.get("weeklyTargetHours") as string
+    const categoryValue = formData.get("category") as string
 
     if (taskToEdit) {
       // Update existing task
@@ -88,8 +104,11 @@ export function TaskForm({ onTaskCreated, taskToEdit }: TaskFormProps) {
         description: description || "",
         priority,
         date,
+        priority_weight: getPriorityWeight(priority),
         isRecurring,
         recurrenceDays: isRecurring ? recurrenceDays : undefined,
+        weeklyTargetHours: weeklyTargetHoursValue ? parseFloat(weeklyTargetHoursValue) || 0 : 0,
+        category: categoryValue || undefined,
       })
     } else {
       // Create new task
@@ -99,9 +118,11 @@ export function TaskForm({ onTaskCreated, taskToEdit }: TaskFormProps) {
         priority,
         date,
         completed: false,
-        priority_weight: 0,
+        priority_weight: getPriorityWeight(priority),
         isRecurring,
         recurrenceDays: isRecurring ? recurrenceDays : undefined,
+        weeklyTargetHours: weeklyTargetHoursValue ? parseFloat(weeklyTargetHoursValue) || 0 : 0,
+        category: categoryValue || undefined,
       })
     }
 
@@ -121,6 +142,8 @@ export function TaskForm({ onTaskCreated, taskToEdit }: TaskFormProps) {
       saturday: false,
       sunday: false,
     })
+    setWeeklyTargetHours(0)
+    setCategory("")
   }
 
   if (!isOpen && !taskToEdit) { // Don't show button when editing (form is always open)
@@ -165,6 +188,31 @@ export function TaskForm({ onTaskCreated, taskToEdit }: TaskFormProps) {
           defaultValue={taskToEdit?.date || new Date().toISOString().split("T")[0]} 
           required 
         />
+        
+        {/* Weekly Target Hours Section */}
+        <div className="pt-2">
+          <label className="text-sm font-medium mb-1 block">Weekly Target Hours</label>
+          <Input 
+            name="weeklyTargetHours" 
+            type="number" 
+            min="0" 
+            step="0.5" 
+            value={weeklyTargetHours} 
+            onChange={(e) => setWeeklyTargetHours(parseFloat(e.target.value) || 0)} 
+            placeholder="e.g., 10.5" 
+          />
+        </div>
+        
+        {/* Category Section */}
+        <div className="pt-2">
+          <label className="text-sm font-medium mb-1 block">Category</label>
+          <Input 
+            name="category" 
+            value={category} 
+            onChange={(e) => setCategory(e.target.value)} 
+            placeholder="e.g., Health, Work, Learning" 
+          />
+        </div>
         
         {/* Recurrence Section */}
         <div className="pt-2 border-t">
@@ -218,6 +266,8 @@ export function TaskForm({ onTaskCreated, taskToEdit }: TaskFormProps) {
                 saturday: false,
                 sunday: false,
               });
+              setWeeklyTargetHours(0);
+              setCategory("");
               // Notify parent to clear taskToEdit state
               onTaskCreated?.();
             }
