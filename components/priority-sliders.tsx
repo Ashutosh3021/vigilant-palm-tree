@@ -15,21 +15,35 @@ interface PrioritySlidersProps {
 }
 
 export function PrioritySliders({ tasks, onPrioritiesChange, onUpdate }: PrioritySlidersProps) {
-  // Initialize priorities - distribute 100% among tasks
+  // Initialize priorities - use existing priority weights from tasks if available, otherwise distribute 100% among tasks
   const [priorities, setPriorities] = useState<Record<string, number>>(() => {
     const initialPriorities: Record<string, number> = {}
-    const basePriority = tasks.length > 0 ? Math.floor(100 / tasks.length) : 0
-    let remaining = 100
     
-    tasks.forEach((task, index) => {
-      if (index === tasks.length - 1) {
-        // Assign remaining percentage to the last task
-        initialPriorities[task.id] = remaining
-      } else {
-        initialPriorities[task.id] = basePriority
-        remaining -= basePriority
+    // Use existing priority weights from tasks if available
+    let totalExistingWeight = 0;
+    tasks.forEach((task) => {
+      const priorityWeight = task.priority_weight || 0;
+      if (priorityWeight > 0) {
+        initialPriorities[task.id] = priorityWeight;
+        totalExistingWeight += priorityWeight;
       }
-    })
+    });
+    
+    // If no existing weights or total is not 100, distribute equally
+    if (totalExistingWeight === 0 || totalExistingWeight !== 100) {
+      const basePriority = tasks.length > 0 ? Math.floor(100 / tasks.length) : 0
+      let remaining = 100
+      
+      tasks.forEach((task, index) => {
+        if (index === tasks.length - 1) {
+          // Assign remaining percentage to the last task
+          initialPriorities[task.id] = remaining
+        } else {
+          initialPriorities[task.id] = basePriority
+          remaining -= basePriority
+        }
+      })
+    }
     
     return initialPriorities
   })
@@ -49,10 +63,16 @@ export function PrioritySliders({ tasks, onPrioritiesChange, onUpdate }: Priorit
       }
     })
     
-    // Add priorities for new tasks
+    // Add priorities for new tasks, using existing priority weights if available
     tasks.forEach(task => {
       if (!(task.id in newPriorities)) {
-        newPriorities[task.id] = Math.max(0, Math.floor(100 / tasks.length))
+        // Use the task's existing priority weight if available
+        if (task.priority_weight && task.priority_weight > 0) {
+          newPriorities[task.id] = task.priority_weight;
+        } else {
+          // Otherwise distribute equally
+          newPriorities[task.id] = Math.max(0, Math.floor(100 / tasks.length));
+        }
       }
     })
     
