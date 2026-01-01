@@ -12,22 +12,23 @@ export const metadata: Metadata = {
   title: "MomentumTracker - Build momentum, one task at a time",
   description: "Priority-weighted task tracking with daily scoring and momentum heatmap",
   generator: "v0.app",
+  manifest: "/vigilant-palm-tree/manifest.json",
   icons: {
     icon: [
       {
-        url: "/icon-light-32x32.png",
+        url: "/vigilant-palm-tree/assets/favicon-32x32.png",
         media: "(prefers-color-scheme: light)",
       },
       {
-        url: "/icon-dark-32x32.png",
+        url: "/vigilant-palm-tree/assets/favicon-32x32.png",
         media: "(prefers-color-scheme: dark)",
       },
       {
-        url: "/icon.svg",
-        type: "image/svg+xml",
+        url: "/vigilant-palm-tree/assets/favicon.ico",
+        type: "image/x-icon",
       },
     ],
-    apple: "/apple-icon.png",
+    apple: "/vigilant-palm-tree/assets/apple-touch-icon.png"
   },
 }
 
@@ -38,6 +39,36 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* PWA Meta Tags */}
+        <link rel="manifest" href="/vigilant-palm-tree/manifest.json" />
+        <meta name="theme-color" content="#3b82f6" />
+        <meta name="application-name" content="MomentumTracker" />
+        <meta name="apple-mobile-web-app-title" content="MomentumTracker" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <link rel="apple-touch-icon" href="/vigilant-palm-tree/assets/android-chrome-192x192.png" />
+        <link rel="icon" type="image/x-icon" href="/vigilant-palm-tree/assets/favicon.ico" />
+        
+        {/* Register Service Worker */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/vigilant-palm-tree/service-worker.js')
+                    .then(function(registration) {
+                      console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(function(error) {
+                      console.log('Service Worker registration failed:', error);
+                    });
+                });
+              }
+            `,
+          }}
+        />
+      </head>
       <body className={`font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           {children}
