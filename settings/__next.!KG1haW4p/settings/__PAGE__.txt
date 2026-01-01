@@ -1,9 +1,9 @@
 1:"$Sreact.fragment"
 2:I[47257,["/vigilant-palm-tree/_next/static/chunks/ff1a16fafef87110.js","/vigilant-palm-tree/_next/static/chunks/247eb132b7f7b574.js"],"ClientPageRoot"]
-3:I[90905,["/vigilant-palm-tree/_next/static/chunks/d3254aaaf1042bb5.js","/vigilant-palm-tree/_next/static/chunks/d6152e815e01d624.js","/vigilant-palm-tree/_next/static/chunks/968bf539bb7e1ac2.js","/vigilant-palm-tree/_next/static/chunks/7dca75f9646c1e36.js","/vigilant-palm-tree/_next/static/chunks/891ec3e5d6585e1d.js"],"default"]
+3:I[90905,["/vigilant-palm-tree/_next/static/chunks/d3254aaaf1042bb5.js","/vigilant-palm-tree/_next/static/chunks/400fd82857591ebc.js","/vigilant-palm-tree/_next/static/chunks/19e650008306a0fb.js","/vigilant-palm-tree/_next/static/chunks/3cd500cd3da8649c.js","/vigilant-palm-tree/_next/static/chunks/09721b75c10df070.js"],"default"]
 6:I[97367,["/vigilant-palm-tree/_next/static/chunks/ff1a16fafef87110.js","/vigilant-palm-tree/_next/static/chunks/247eb132b7f7b574.js"],"OutletBoundary"]
 7:"$Sreact.suspense"
-0:{"buildId":"sljhm-8NWLGQjfz7jamkS","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/vigilant-palm-tree/_next/static/chunks/7dca75f9646c1e36.js","async":true}],["$","script","script-1",{"src":"/vigilant-palm-tree/_next/static/chunks/891ec3e5d6585e1d.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
+0:{"buildId":"gjTrOCjJIy2WAjdiQKWev","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/vigilant-palm-tree/_next/static/chunks/3cd500cd3da8649c.js","async":true}],["$","script","script-1",{"src":"/vigilant-palm-tree/_next/static/chunks/09721b75c10df070.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
 4:{}
 5:{}
 8:null
