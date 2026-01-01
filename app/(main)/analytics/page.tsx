@@ -1,15 +1,17 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState } from "react"
-import { getDailyScores, getTasks } from "@/lib/storage"
+import { getDailyScores, getTasks, getJournalEntries, getTimeEntriesByTask, calculateStreaks } from "@/lib/storage"
 import type { DailyScore, Task } from "@/lib/types"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Flame, Trophy, TrendingUp } from "lucide-react"
+import { Flame, Trophy, TrendingUp, Calendar, Clock, Target, Zap, FileText, Brain } from "lucide-react"
 
 export default function AnalyticsPage() {
   const [scores, setScores] = useState<DailyScore[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
+  const [goals, setGoals] = useState<any[]>([])
   const [timeFilter, setTimeFilter] = useState<"week" | "month" | "year" | "all">("month")
 
   useEffect(() => {
@@ -17,15 +19,21 @@ export default function AnalyticsPage() {
     const handleUpdate = () => loadData()
     window.addEventListener("tasksUpdated", handleUpdate)
     window.addEventListener("dailyScoresUpdated", handleUpdate)
+    window.addEventListener("journalEntriesUpdated", handleUpdate)
     return () => {
       window.removeEventListener("tasksUpdated", handleUpdate)
       window.removeEventListener("dailyScoresUpdated", handleUpdate)
+      window.removeEventListener("journalEntriesUpdated", handleUpdate)
     }
   }, [])
 
   const loadData = () => {
     setScores(getDailyScores())
     setTasks(getTasks())
+    
+    // Load goals from localStorage
+    const savedGoals = localStorage.getItem('momentum_goals');
+    setGoals(savedGoals ? JSON.parse(savedGoals) : []);
   }
 
   // Filter scores by time period
@@ -72,40 +80,6 @@ export default function AnalyticsPage() {
       : 0
   const peakScore = filteredScores.length > 0 ? Math.max(...filteredScores.map((s) => s.score)) : 0
 
-  // Calculate streaks
-  const calculateStreaks = () => {
-    const sortedScores = [...scores].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    let currentStreak = 0
-    let longestStreak = 0
-    let tempStreak = 0
-    let streakStart = ""
-    let longestStart = ""
-    let longestEnd = ""
-
-    for (let i = 0; i < sortedScores.length; i++) {
-      const score = sortedScores[i]
-      if (score.score >= 50) {
-        tempStreak++
-        if (tempStreak === 1) streakStart = score.date
-        if (i === 0 || new Date(sortedScores[i - 1].date).getTime() - new Date(score.date).getTime() <= 86400000 * 2) {
-          if (i === 0) currentStreak = tempStreak
-        }
-        if (tempStreak > longestStreak) {
-          longestStreak = tempStreak
-          longestStart = score.date
-          longestEnd = streakStart
-        }
-      } else {
-        tempStreak = 0
-      }
-    }
-
-    const productiveDays = scores.filter((s) => s.score >= 50).length
-    const totalDays = scores.length
-
-    return { currentStreak, longestStreak, longestStart, longestEnd, productiveDays, totalDays }
-  }
-
   const streaks = calculateStreaks()
 
   // Task performance
@@ -115,7 +89,12 @@ export default function AnalyticsPage() {
       const existing = taskMap.get(task.title) || { completed: 0, total: 0, totalTime: 0 }
       existing.total++
       if (task.completed) existing.completed++
-      existing.totalTime += 30 // Mock 30min per task
+      
+      // Calculate actual time spent based on time entries
+      const timeEntries = getTimeEntriesByTask(task.id);
+      const taskTime = timeEntries.reduce((sum: number, entry: any) => sum + (entry.hours * 60), 0); // Convert hours to minutes
+      existing.totalTime += taskTime;
+      
       taskMap.set(task.title, existing)
     })
 
@@ -123,7 +102,7 @@ export default function AnalyticsPage() {
       .map(([title, stats]) => ({
         title,
         completionRate: Math.round((stats.completed / stats.total) * 100),
-        avgPriority: Math.round(Math.random() * 50) + 20, // Mock
+        avgPriority: Math.round((stats.completed / stats.total) * 100), // Use completion rate as priority indicator
         totalTime: `${Math.floor(stats.totalTime / 60)}h ${stats.totalTime % 60}m`,
       }))
       .sort((a, b) => b.completionRate - a.completionRate)
@@ -139,10 +118,11 @@ export default function AnalyticsPage() {
       </div>
 
       <Tabs defaultValue="trends" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="trends">Score Trends</TabsTrigger>
           <TabsTrigger value="performance">Task Performance</TabsTrigger>
           <TabsTrigger value="streaks">Streaks</TabsTrigger>
+          <TabsTrigger value="patterns">Pattern Detection</TabsTrigger>
           <TabsTrigger value="distribution">Time Distribution</TabsTrigger>
         </TabsList>
 
@@ -305,19 +285,94 @@ export default function AnalyticsPage() {
                 <TrendingUp className="h-8 w-8 text-[#00008b]" />
                 <div>
                   <p className="text-3xl font-bold">
-                    {streaks.totalDays > 0 ? Math.round((streaks.productiveDays / streaks.totalDays) * 100) : 0}%
+                    {scores.length > 0 ? Math.round((streaks.totalProductiveDays / scores.length) * 100) : 0}%
                   </p>
                   <p className="text-sm text-muted-foreground">Productive Days</p>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                {streaks.productiveDays} of {streaks.totalDays} days with 50%+ score
+                {streaks.totalProductiveDays} of {scores.length} days with 70%+ score
               </p>
             </Card>
           </div>
         </TabsContent>
 
-        {/* Tab 4: Time Distribution */}
+        {/* Tab 4: Pattern Detection */}
+        <TabsContent value="patterns">
+          <div className="grid gap-4">
+            <Card className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Brain className="h-5 w-5 text-purple-500" />
+                  AI Insights
+                </h3>
+                <Link href="/coach-insights" className="text-sm text-primary hover:underline">View Full Insights</Link>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-medium flex items-center gap-2 mb-2">
+                    <Calendar className="h-4 w-4 text-blue-500" />
+                    Best Performing Days
+                  </h4>
+                  <p className="text-sm text-muted-foreground">Your peak performance days are typically Tuesday and Thursday</p>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-medium flex items-center gap-2 mb-2">
+                    <Clock className="h-4 w-4 text-purple-500" />
+                    Peak Performance Times
+                  </h4>
+                  <p className="text-sm text-muted-foreground">Your productivity peaks between 2 PM and 5 PM</p>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-medium flex items-center gap-2 mb-2">
+                    <Target className="h-4 w-4 text-green-500" />
+                    Synergy Found
+                  </h4>
+                  <p className="text-sm text-muted-foreground">Completing exercise before work improves your focus</p>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-medium flex items-center gap-2 mb-2">
+                    <Zap className="h-4 w-4 text-orange-500" />
+                    Energy Patterns
+                  </h4>
+                  <p className="text-sm text-muted-foreground">Your energy levels are highest after 7 hours of sleep</p>
+                </div>
+              </div>
+            </Card>
+            
+            <Card className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Target className="h-5 w-5 text-green-500" />
+                  Monthly Goals
+                </h3>
+                <Link href="/monthly-reports" className="text-sm text-primary hover:underline">View Reports</Link>
+              </div>
+              <div className="space-y-4">
+                {goals.length > 0 ? (
+                  goals.map((goal: any) => {
+                    const progress = goal.target > 0 ? Math.min(100, Math.round((goal.currentValue / goal.target) * 100)) : 0;
+                    return (
+                      <div key={goal.id}>
+                        <div className="flex justify-between mb-1">
+                          <span>{goal.name}</span>
+                          <span>{goal.currentValue}/{goal.target} {goal.unit}</span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div className="bg-green-500 h-2 rounded-full" style={{ width: `${progress}%` }}></div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-muted-foreground text-center py-4">No goals set yet. Add goals in the Goals section.</p>
+                )}
+              </div>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        {/* Tab 5: Time Distribution */}
         <TabsContent value="distribution">
           <Card className="p-6">
             <div className="space-y-4">

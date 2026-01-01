@@ -1,4 +1,4 @@
-import type { Task, DailyScore, TimeEntry } from "./types"
+import type { Task, DailyScore, TimeEntry, JournalEntry } from "./types"
 
 // User Preferences
 export interface UserPreferences {
@@ -58,6 +58,9 @@ export function getUserPreferences(): UserPreferences | null {
 
 export function saveUserPreferences(prefs: UserPreferences) {
   localStorage.setItem(STORAGE_KEYS.USER_PREFS, JSON.stringify(prefs))
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("userPrefsUpdated"))
+  }
 }
 
 // Tasks
@@ -312,7 +315,229 @@ export function deleteTimeEntry(entryId: string) {
   saveTimeEntries(entries);
 }
 
+// Streak calculation
+export function calculateStreaks(): { currentStreak: number; longestStreak: number; totalProductiveDays: number; longestStart: string; longestEnd: string } {
+  const scores = getDailyScores().sort((a, b) => a.date.localeCompare(b.date));
+  
+  if (scores.length === 0) {
+    return {
+      currentStreak: 0,
+      longestStreak: 0,
+      totalProductiveDays: 0,
+      longestStart: "",
+      longestEnd: ""
+    };
+  }
+  
+  let currentStreak = 0;
+  let maxStreak = 0;
+  let currentStart = "";
+  let currentEnd = "";
+  let maxStart = "";
+  let maxEnd = "";
+  let totalProductiveDays = 0;
+  
+  // Convert to date objects for easier comparison
+  const dateScores = scores.map(score => ({
+    date: new Date(score.date),
+    score: score.score
+  })).sort((a, b) => a.date.getTime() - b.date.getTime());
+  
+  // Calculate streaks day by day
+  for (let i = 0; i < dateScores.length; i++) {
+    const score = dateScores[i];
+    
+    if (score.score >= 70) {
+      totalProductiveDays++;
+      
+      if (currentStreak === 0) {
+        // Start of a new streak
+        currentStart = score.date.toISOString().split('T')[0];
+      }
+      currentStreak++;
+      currentEnd = score.date.toISOString().split('T')[0];
+      
+      // Update max streak if current streak is longer
+      if (currentStreak > maxStreak) {
+        maxStreak = currentStreak;
+        maxStart = currentStart;
+        maxEnd = currentEnd;
+      }
+    } else {
+      // Streak broken, reset current streak
+      currentStreak = 0;
+    }
+  }
+  
+  return {
+    currentStreak,
+    longestStreak: maxStreak,
+    totalProductiveDays,
+    longestStart: maxStart,
+    longestEnd: maxEnd
+  };
+}
+
+// Recovery tasks management
+const RECOVERY_TASKS_KEY = "momentum_recovery_tasks";
+
+export interface RecoveryTask {
+  id: string;
+  title: string;
+  description: string;
+  priority: 'High' | 'Medium' | 'Low';
+  completed: boolean;
+  date: string;
+  created_at: string;
+  updated_at: string;
+  isRecovery: boolean; // Flag to identify recovery tasks
+}
+
+export function getRecoveryTasks(): RecoveryTask[] {
+  if (typeof window === "undefined") return [];
+  const data = localStorage.getItem(RECOVERY_TASKS_KEY);
+  return data ? JSON.parse(data) : [];
+}
+
+export function saveRecoveryTasks(tasks: RecoveryTask[]) {
+  localStorage.setItem(RECOVERY_TASKS_KEY, JSON.stringify(tasks));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("recoveryTasksUpdated"));
+  }
+}
+
+export function addRecoveryTask(task: Omit<RecoveryTask, "id" | "created_at" | "updated_at" | "isRecovery">): RecoveryTask {
+  const tasks = getRecoveryTasks();
+  const newTask: RecoveryTask = {
+    ...task,
+    id: `recovery_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    isRecovery: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  tasks.push(newTask);
+  saveRecoveryTasks(tasks);
+  return newTask;
+}
+
+export function updateRecoveryTask(taskId: string, updates: Partial<RecoveryTask>) {
+  const tasks = getRecoveryTasks();
+  const index = tasks.findIndex((t) => t.id === taskId);
+  if (index !== -1) {
+    tasks[index] = { ...tasks[index], ...updates, updated_at: new Date().toISOString() };
+    saveRecoveryTasks(tasks);
+  }
+}
+
+export function deleteRecoveryTask(taskId: string) {
+  const tasks = getRecoveryTasks().filter((t) => t.id !== taskId);
+  saveRecoveryTasks(tasks);
+}
+
+export function clearRecoveryTasks() {
+  localStorage.removeItem(RECOVERY_TASKS_KEY);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("recoveryTasksUpdated"));
+  }
+}
+
+// Function to check if streak is broken and recovery tasks should be shown
+export function isStreakBroken(): boolean {
+  const scores = getDailyScores().sort((a, b) => b.date.localeCompare(a.date));
+  if (scores.length === 0) return false;
+  
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  // Format dates to YYYY-MM-DD
+  const todayStr = today.toISOString().split("T")[0];
+  const yesterdayStr = yesterday.toISOString().split("T")[0];
+  
+  // Check if yesterday had a good score
+  const yesterdayScore = scores.find(s => s.date === yesterdayStr);
+  
+  // Check if today has a score
+  const todayScore = scores.find(s => s.date === todayStr);
+  
+  // Only return true if yesterday exists but was below 70% and today hasn't been scored yet
+  return yesterdayScore ? yesterdayScore.score < 70 && !todayScore : false;
+}
+
+// Function to generate recovery tasks when streak is broken
+export function generateRecoveryTasks(): RecoveryTask[] {
+  const today = new Date().toISOString().split("T")[0];
+  
+  const recoveryTasks = [
+    {
+      title: "Complete 3 tasks today",
+      description: "Recovery task to repair your broken streak",
+      priority: "High",
+      completed: false,
+      date: today,
+    },
+    {
+      title: "Review yesterday's missed tasks",
+      description: "Recovery task to repair your broken streak",
+      priority: "Medium",
+      completed: false,
+      date: today,
+    },
+    {
+      title: "Set 3 new tasks for today",
+      description: "Recovery task to repair your broken streak",
+      priority: "Medium",
+      completed: false,
+      date: today,
+    },
+    {
+      title: "Focus on high-priority items",
+      description: "Recovery task to repair your broken streak",
+      priority: "High",
+      completed: false,
+      date: today,
+    }
+  ];
+  
+  return recoveryTasks.map(task => ({
+    ...task,
+    id: `recovery_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    isRecovery: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  })) as RecoveryTask[];
+}
+
 export function getTotalTimeForTaskInWeek(taskId: string, weekStart: string, weekEnd: string): number {
   const entries = getTimeEntriesByTaskAndWeek(taskId, weekStart, weekEnd);
   return entries.reduce((total, entry) => total + entry.hours, 0);
+}
+
+// Journal Entries
+const JOURNAL_ENTRIES_KEY = "momentum_journal_entries";
+
+export function getJournalEntries(): JournalEntry[] {
+  if (typeof window === "undefined") return [];
+  const data = localStorage.getItem(JOURNAL_ENTRIES_KEY);
+  return data ? JSON.parse(data) : [];
+}
+
+export function saveJournalEntries(entries: JournalEntry[]) {
+  localStorage.setItem(JOURNAL_ENTRIES_KEY, JSON.stringify(entries));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("journalEntriesUpdated"));
+  }
+}
+
+export function saveJournalEntry(entry: JournalEntry) {
+  const entries = getJournalEntries();
+  const existingIndex = entries.findIndex(e => e.date === entry.date);
+  
+  if (existingIndex !== -1) {
+    entries[existingIndex] = entry;
+  } else {
+    entries.push(entry);
+  }
+  
+  saveJournalEntries(entries);
 }

@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Trash2, Edit, GripVertical, Clock } from "lucide-react"
 import { useState } from "react"
-import { updateTask, deleteTask as deleteTaskFromStorage, getTasksByDate, upsertDailyScore, createTask as createTaskInStorage, upsertDailyLog, getDailyLog, getDailyLogs, saveDailyScores } from "@/lib/storage"
+import { updateTask, deleteTask as deleteTaskFromStorage, getTasksByDate, upsertDailyScore, createTask as createTaskInStorage, upsertDailyLog, getDailyLog, getDailyLogs, saveDailyScores, updateRecoveryTask, clearRecoveryTasks, getRecoveryTasks } from "@/lib/storage"
 import { calculateDailyScore } from "@/lib/score-calculator"
 import { TaskForm } from "@/components/task-form"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -157,6 +157,11 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
               <span className={`text-xs px-2 py-0.5 rounded-full border ${getPriorityColor(task.priority)}`}>
                 {task.priority}
               </span>
+              {task.isRecovery && (
+                <span className="text-xs px-2 py-0.5 rounded-full border bg-red-100 text-red-800 border-red-200">
+                  Recovery
+                </span>
+              )}
               {task.category && (
                 <span className="text-xs px-2 py-0.5 rounded-full border bg-purple-100 text-purple-800 border-purple-200">
                   {task.category}
@@ -274,7 +279,22 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
         createNextRecurrenceInstances(task)
       }
       
-      updateTask(taskId, { completed })
+      // If it's a recovery task being marked as completed, check if all recovery tasks are done
+      if (task && task.isRecovery) {
+        updateRecoveryTask(taskId, { completed });
+        
+        // Check if all recovery tasks are completed
+        const allRecoveryTasks = tasks.filter(t => t.isRecovery);
+        const allCompleted = allRecoveryTasks.every(t => t.completed);
+        
+        // If all recovery tasks are completed, clear them
+        if (allCompleted) {
+          clearRecoveryTasks();
+        }
+      } else {
+        updateTask(taskId, { completed });
+      }
+      
       recalculateDailyScore()
       setLoading(null)
       onTaskUpdated?.()
@@ -285,7 +305,20 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
     if (!timeTrackingTask) return;
     
     // Update the task as completed
-    updateTask(timeTrackingTask.id, { completed: true });
+    if (timeTrackingTask.isRecovery) {
+      updateRecoveryTask(timeTrackingTask.id, { completed: true });
+      
+      // Check if all recovery tasks are completed
+      const allRecoveryTasks = getRecoveryTasks();
+      const allCompleted = allRecoveryTasks.every((t: any) => t.completed);
+      
+      // If all recovery tasks are completed, clear them
+      if (allCompleted) {
+        clearRecoveryTasks();
+      }
+    } else {
+      updateTask(timeTrackingTask.id, { completed: true });
+    }
     
     // If time was tracked, save it
     if (timeSpent > 0) {
@@ -303,11 +336,18 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
     
     // Get all tasks for today to calculate the daily score
     const todayTasks = getTasksByDate(today);
-    const completedToday = todayTasks.filter(t => t.completed).length;
+    const recoveryTasks = getRecoveryTasks();
+    const allTasks = [...todayTasks, ...recoveryTasks.map((rt: any) => ({
+      ...rt,
+      user_id: "local",
+      priority_weight: rt.priority === "High" ? 3 : rt.priority === "Medium" ? 2 : 1,
+    }))];
+    
+    const completedToday = allTasks.filter((t: any) => t.completed).length;
     
     const dailyLog = {
       date: today,
-      tasks: todayTasks.map(t => {
+      tasks: allTasks.map((t: any) => {
         // Calculate time spent from time entries for this task
         const timeEntries = getTimeEntriesByTask(t.id);
         const totalTaskTime = timeEntries.reduce((sum: number, entry: TimeEntry) => sum + (entry.hours * 60), 0); // Convert hours to minutes
@@ -320,9 +360,9 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
           completedAt: t.completed ? new Date().toISOString() : undefined,
         }
       }),
-      totalScore: calculateDailyScore(todayTasks),
+      totalScore: calculateDailyScore(allTasks),
       tasksCompleted: completedToday,
-      tasksAssigned: todayTasks.length,
+      tasksAssigned: allTasks.length,
     };
     
     upsertDailyLog(dailyLog);

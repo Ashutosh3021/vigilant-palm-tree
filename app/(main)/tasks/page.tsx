@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { TaskForm } from "@/components/task-form"
 import { TaskList } from "@/components/task-list"
 import { PrioritySliders } from "@/components/priority-sliders"
-import { getTasksByDate } from "@/lib/storage"
+import { getTasksByDate, getRecoveryTasks, isStreakBroken, generateRecoveryTasks, saveRecoveryTasks } from "@/lib/storage"
 import type { Task } from "@/lib/types"
 
 export default function TasksPage() {
@@ -12,14 +12,51 @@ export default function TasksPage() {
 
   const loadTasks = () => {
     const today = new Date().toISOString().split("T")[0]
-    const todayTasks = getTasksByDate(today).sort((a, b) => {
+    let todayTasks = getTasksByDate(today).sort((a, b) => {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     })
+    
+    // Check if streak is broken and add recovery tasks if needed
+    if (isStreakBroken()) {
+      let recoveryTasks = getRecoveryTasks();
+      
+      // If no recovery tasks exist, generate them
+      if (recoveryTasks.length === 0) {
+        recoveryTasks = generateRecoveryTasks();
+        saveRecoveryTasks(recoveryTasks);
+      }
+      
+      // Add recovery tasks to the main task list
+      const recoveryTasksAsTasks: Task[] = recoveryTasks.map(rt => ({
+        id: rt.id,
+        title: rt.title,
+        description: rt.description,
+        priority: rt.priority,
+        completed: rt.completed,
+        date: rt.date,
+        created_at: rt.created_at,
+        updated_at: rt.updated_at,
+        user_id: "local",
+        priority_weight: rt.priority === "High" ? 3 : rt.priority === "Medium" ? 2 : 1,
+        isRecovery: rt.isRecovery,
+      }));
+      todayTasks = [...todayTasks, ...recoveryTasksAsTasks];
+    }
+    
     setTasks(todayTasks)
   }
 
   useEffect(() => {
     loadTasks()
+    
+    const handleUpdate = () => loadTasks();
+    window.addEventListener("tasksUpdated", handleUpdate);
+    window.addEventListener("recoveryTasksUpdated", handleUpdate);
+    
+    return () => {
+      window.removeEventListener("tasksUpdated", handleUpdate);
+      window.removeEventListener("recoveryTasksUpdated", handleUpdate);
+    };
   }, [])
 
   return (

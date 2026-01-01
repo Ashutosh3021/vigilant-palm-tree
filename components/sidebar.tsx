@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, CheckSquare, Activity, BarChart3, Settings, ChevronLeft, ChevronRight } from "lucide-react"
+import { LayoutDashboard, CheckSquare, Activity, BarChart3, Settings, ChevronLeft, ChevronRight, Calendar, Trophy, Target, Brain, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { getUserPreferences } from "@/lib/storage"
@@ -12,6 +12,10 @@ import { ThemeToggle } from "@/components/theme-toggle"
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tasks", label: "Today's Tasks", icon: CheckSquare },
+  { href: "/journal", label: "Journal", icon: Calendar },
+  { href: "/achievements", label: "Achievements", icon: Trophy },
+  { href: "/monthly-reports", label: "Reports", icon: FileText },
+  { href: "/coach-insights", label: "Coach", icon: Brain },
   { href: "/heatmap", label: "Heatmap", icon: Activity },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
@@ -25,14 +29,25 @@ interface SidebarProps {
 export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname()
   const [userName, setUserName] = useState("User")
-  const [resetTime, setResetTime] = useState("04:00 AM")
+  const [resetTime, setResetTime] = useState("04:00")
 
   useEffect(() => {
-    const prefs = getUserPreferences()
-    if (prefs) {
-      setUserName(prefs.name)
-      setResetTime(prefs.dayResetTime)
-    }
+    const loadPrefs = () => {
+      const prefs = getUserPreferences()
+      if (prefs) {
+        setUserName(prefs.name)
+        setResetTime(prefs.dayResetTime)
+      }
+    };
+    
+    loadPrefs();
+    
+    const handleUpdate = () => loadPrefs();
+    window.addEventListener("userPrefsUpdated", handleUpdate);
+    
+    return () => {
+      window.removeEventListener("userPrefsUpdated", handleUpdate);
+    };
   }, [])
 
   return (

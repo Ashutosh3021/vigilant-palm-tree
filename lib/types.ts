@@ -18,6 +18,8 @@ export interface Task {
   weeklyTargetHours?: number
   // Category tags
   category?: string
+  // Recovery task indicator
+  isRecovery?: boolean
 }
 
 export interface RecurrenceDays {
@@ -63,4 +65,14 @@ export interface TimeEntry {
   description?: string
   created_at: string
   updated_at: string
+}
+
+export interface JournalEntry {
+  date: string;
+  screenTime?: string;
+  sleepHours?: string;
+  waterGlasses?: number;
+  mood?: number;
+  energy?: number;
+  customMetrics?: Array<{name: string, value: string}>;
 }

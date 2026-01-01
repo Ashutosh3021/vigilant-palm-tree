@@ -1,8 +1,9 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState } from "react"
 import { StatsCard } from "@/components/stats-card"
-import { TrendingUp, CheckCircle2, Calendar, Plus, Trophy, Star, Zap, Brain, Target } from "lucide-react"
+import { TrendingUp, CheckCircle2, Calendar, Plus, Trophy, Star, Zap, Brain, Target, FileText } from "lucide-react"
 import { MiniHeatmap } from "@/components/mini-heatmap"
 import { ScoreTrendChart } from "@/components/score-trend-chart"
 import { getDailyScores, getDailyScore, createTask as createTaskInStorage, getDailyLogs, getAnalytics, saveAnalytics } from "@/lib/storage"
@@ -254,6 +255,29 @@ export default function DashboardPage() {
             <Plus className="h-4 w-4 mr-2" />
             Add
           </Button>
+        </div>
+      </div>
+      
+      {/* Quick Navigation */}
+      <div className="p-6 border rounded-lg bg-card">
+        <h2 className="text-lg font-semibold mb-4">Quick Navigation</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Link href="/journal" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+            <Calendar className="h-6 w-6 mx-auto mb-2 text-blue-500" />
+            <p className="text-sm font-medium">Journal</p>
+          </Link>
+          <Link href="/achievements" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+            <Trophy className="h-6 w-6 mx-auto mb-2 text-yellow-500" />
+            <p className="text-sm font-medium">Achievements</p>
+          </Link>
+          <Link href="/monthly-reports" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+            <FileText className="h-6 w-6 mx-auto mb-2 text-green-500" />
+            <p className="text-sm font-medium">Reports</p>
+          </Link>
+          <Link href="/coach-insights" className="p-4 border rounded-lg hover:bg-accent transition-colors text-center">
+            <Brain className="h-6 w-6 mx-auto mb-2 text-purple-500" />
+            <p className="text-sm font-medium">Coach</p>
+          </Link>
         </div>
       </div>
 
