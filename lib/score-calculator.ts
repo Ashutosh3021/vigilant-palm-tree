@@ -1,17 +1,22 @@
 import type { Task } from "./types"
-
-const PRIORITY_WEIGHTS = {
-  High: 3,
-  Medium: 2,
-  Low: 1,
-}
+import { getCategoryWeight } from "./constants/categoryWeightage"
 
 export function calculateDailyScore(tasks: Task[]): number {
   if (tasks.length === 0) return 0
 
   const completedTasks = tasks.filter((task) => task.completed)
-  const totalWeight = tasks.reduce((sum, task) => sum + (task.priority_weight || PRIORITY_WEIGHTS[task.priority]), 0)
-  const completedWeight = completedTasks.reduce((sum, task) => sum + (task.priority_weight || PRIORITY_WEIGHTS[task.priority]), 0)
+  
+  // Calculate total weight using category-based weights
+  const totalWeight = tasks.reduce((sum, task) => {
+    const categoryWeight = getCategoryWeight(task.category || "OTHER");
+    return sum + categoryWeight;
+  }, 0)
+  
+  // Calculate completed weight using category-based weights
+  const completedWeight = completedTasks.reduce((sum, task) => {
+    const categoryWeight = getCategoryWeight(task.category || "OTHER");
+    return sum + categoryWeight;
+  }, 0)
 
   if (totalWeight === 0) return 0
 

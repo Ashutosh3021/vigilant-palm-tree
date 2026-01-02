@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { checkAllBadges } from "@/lib/badges"
+import { getCategoryWeight } from "@/lib/constants/categoryWeightage"
 
 // DnD Kit imports
 import {
@@ -176,6 +177,9 @@ export function OrganizedTaskList({ tasks, onTaskUpdated }: OrganizedTaskListPro
       opacity: isDragging ? 0.5 : 1,
     };
     
+    // Get category weight for display
+    const categoryWeight = getCategoryWeight(task.category || "OTHER");
+    
     return (
       <div
         ref={setNodeRef}
@@ -219,6 +223,10 @@ export function OrganizedTaskList({ tasks, onTaskUpdated }: OrganizedTaskListPro
                   Recurring
                 </span>
               )}
+              {/* Display category weight */}
+              <span className="text-xs px-2 py-0.5 rounded-full border bg-green-100 text-green-800 border-green-200">
+                {categoryWeight}%
+              </span>
             </div>
             {task.description && <p className="text-sm text-muted-foreground mt-1">{task.description}</p>}
           </div>

@@ -67,7 +67,41 @@ export function saveUserPreferences(prefs: UserPreferences) {
 export function getTasks(): Task[] {
   if (typeof window === "undefined") return []
   const data = localStorage.getItem(STORAGE_KEYS.TASKS)
-  return data ? JSON.parse(data) : []
+  let tasks = data ? JSON.parse(data) : []
+  
+  // Ensure tasks use category-based weights instead of individual weights
+  tasks = tasks.map((task: any) => {
+    // Remove any legacy weight field and rely on category weights
+    const { priority_weight, ...cleanedTask } = task;
+    return {
+      ...cleanedTask,
+      // Recalculate priority weight based on category if not set
+      priority_weight: task.priority_weight || getTaskWeightFromCategory(task.category || "OTHER")
+    };
+  });
+  
+  return tasks;
+}
+
+// Helper function to get weight based on category
+function getTaskWeightFromCategory(category: string): number {
+  const categoryWeights: Record<string, number> = {
+    "DSA - I": 20,
+    "DSA - II": 15,
+    "GYM": 3,
+    "CLASSES AND ACADEMICS": 5,
+    "NO FAP": 2,
+    "UPGRADE": 10,
+    "STATISTICS": 5,
+    "MATH": 10,
+    "COACHING": 15,
+    "OTHER": 5,
+    "MISCELLANEOUS": 5,
+    "JOURNAL": 5,
+  };
+  
+  const normalizedCategory = category.toUpperCase();
+  return categoryWeights[normalizedCategory] || (category === "OTHER" ? 5 : 0);
 }
 
 export function saveTasks(tasks: Task[]) {

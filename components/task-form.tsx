@@ -12,16 +12,23 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Plus } from "lucide-react"
 import { createTask as createTaskInStorage, updateTask } from "@/lib/storage"
 import type { RecurrenceDays } from "@/lib/types"
+import { getCategoryWeight } from "@/lib/constants/categoryWeightage"
 
-const PRIORITY_WEIGHTS = {
-  High: 30, // 30% as default for High priority
-  Medium: 20, // 20% as default for Medium priority
-  Low: 10, // 10% as default for Low priority
-}
-
-const getPriorityWeight = (priority: "High" | "Medium" | "Low"): number => {
-  return PRIORITY_WEIGHTS[priority];
-}
+// Predefined categories with fixed weights
+const FIXED_CATEGORIES = [
+  "DSA - I",
+  "DSA - II", 
+  "GYM",
+  "CLASSES AND ACADEMICS",
+  "NO FAP",
+  "UPGRADE",
+  "STATISTICS",
+  "MATH",
+  "COACHING",
+  "OTHER",
+  "MISCELLANEOUS",
+  "JOURNAL"
+];
 
 interface TaskFormProps {
   onTaskCreated?: () => void
@@ -97,6 +104,9 @@ export function TaskForm({ onTaskCreated, taskToEdit }: TaskFormProps) {
     const weeklyTargetHoursValue = formData.get("weeklyTargetHours") as string
     const categoryValue = formData.get("category") as string
 
+    // Calculate priority weight based on category
+    const categoryWeight = getCategoryWeight(categoryValue || "OTHER");
+
     if (taskToEdit) {
       // Update existing task
       updateTask(taskToEdit.id, {
@@ -104,7 +114,7 @@ export function TaskForm({ onTaskCreated, taskToEdit }: TaskFormProps) {
         description: description || "",
         priority,
         date,
-        priority_weight: getPriorityWeight(priority),
+        priority_weight: categoryWeight, // Use category-based weight
         isRecurring,
         recurrenceDays: isRecurring ? recurrenceDays : undefined,
         weeklyTargetHours: weeklyTargetHoursValue ? parseFloat(weeklyTargetHoursValue) || 0 : 0,
@@ -118,7 +128,7 @@ export function TaskForm({ onTaskCreated, taskToEdit }: TaskFormProps) {
         priority,
         date,
         completed: false,
-        priority_weight: getPriorityWeight(priority),
+        priority_weight: categoryWeight, // Use category-based weight
         isRecurring,
         recurrenceDays: isRecurring ? recurrenceDays : undefined,
         weeklyTargetHours: weeklyTargetHoursValue ? parseFloat(weeklyTargetHoursValue) || 0 : 0,
@@ -154,6 +164,8 @@ export function TaskForm({ onTaskCreated, taskToEdit }: TaskFormProps) {
       </Button>
     )
   }
+
+  const categoryWeight = getCategoryWeight(category || "OTHER");
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-6 border rounded-lg bg-card">
@@ -206,12 +218,25 @@ export function TaskForm({ onTaskCreated, taskToEdit }: TaskFormProps) {
         {/* Category Section */}
         <div className="pt-2">
           <label className="text-sm font-medium mb-1 block">Category</label>
-          <Input 
+          <Select 
             name="category" 
             value={category} 
-            onChange={(e) => setCategory(e.target.value)} 
-            placeholder="e.g., Health, Work, Learning" 
-          />
+            onValueChange={setCategory}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              {FIXED_CATEGORIES.map((cat) => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {category && (
+            <div className="mt-2 text-sm text-muted-foreground">
+              Weight: {categoryWeight}% (fixed for this category)
+            </div>
+          )}
         </div>
         
         {/* Recurrence Section */}
