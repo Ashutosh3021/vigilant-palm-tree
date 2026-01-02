@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { TaskForm } from "@/components/task-form"
-import { TaskList } from "@/components/task-list"
+import { OrganizedTaskList } from "@/components/organized-task-list"
 import { PrioritySliders } from "@/components/priority-sliders"
 import { getTasks, getRecoveryTasks, isStreakBroken, generateRecoveryTasks, saveRecoveryTasks } from "@/lib/storage"
 import type { Task } from "@/lib/types"
@@ -88,7 +88,7 @@ export default function TasksPage() {
       {tasks.length > 0 && <PrioritySliders tasks={tasks} onPrioritiesChange={() => {}} onUpdate={loadTasks} />}
 
       {/* Task List */}
-      <TaskList tasks={tasks} onTaskUpdated={loadTasks} />
+      <OrganizedTaskList tasks={tasks} onTaskUpdated={loadTasks} />
     </div>
   )
 }
