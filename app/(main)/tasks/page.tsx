@@ -6,28 +6,34 @@ import { TaskList } from "@/components/task-list"
 import { PrioritySliders } from "@/components/priority-sliders"
 import { getTasksByDate, getRecoveryTasks, isStreakBroken, generateRecoveryTasks, saveRecoveryTasks } from "@/lib/storage"
 import type { Task } from "@/lib/types"
+import { checkAllBadges } from "@/lib/badges"
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([])
 
   const loadTasks = () => {
     const today = new Date().toISOString().split("T")[0]
-    let todayTasks = getTasksByDate(today).sort((a, b) => {
+    
+    // Read from localStorage only once to improve performance
+    const allTasks = getTasksByDate(today);
+    const recoveryTasks = getRecoveryTasks();
+    
+    let todayTasks = allTasks.sort((a, b) => {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     })
     
     // Check if streak is broken and add recovery tasks if needed
     if (isStreakBroken()) {
-      let recoveryTasks = getRecoveryTasks();
+      let currentRecoveryTasks = recoveryTasks;
       
       // If no recovery tasks exist, generate them
-      if (recoveryTasks.length === 0) {
-        recoveryTasks = generateRecoveryTasks();
-        saveRecoveryTasks(recoveryTasks);
+      if (currentRecoveryTasks.length === 0) {
+        currentRecoveryTasks = generateRecoveryTasks();
+        saveRecoveryTasks(currentRecoveryTasks);
       }
       
       // Add recovery tasks to the main task list
-      const recoveryTasksAsTasks: Task[] = recoveryTasks.map(rt => ({
+      const recoveryTasksAsTasks: Task[] = currentRecoveryTasks.map(rt => ({
         id: rt.id,
         title: rt.title,
         description: rt.description,
@@ -49,7 +55,14 @@ export default function TasksPage() {
   useEffect(() => {
     loadTasks()
     
-    const handleUpdate = () => loadTasks();
+    // Check for newly unlocked badges when page loads
+    checkAllBadges();
+    
+    const handleUpdate = () => {
+      loadTasks();
+      // Check for newly unlocked badges when tasks are updated
+      checkAllBadges();
+    };
     window.addEventListener("tasksUpdated", handleUpdate);
     window.addEventListener("recoveryTasksUpdated", handleUpdate);
     

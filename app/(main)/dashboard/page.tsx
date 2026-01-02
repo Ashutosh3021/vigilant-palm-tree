@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { CoachInsights } from "@/components/coach-insights"
+import { useBadges } from "@/lib/hooks/useBadges"
+import BadgeDisplay from "@/components/badges/BadgeDisplay"
 
 export default function DashboardPage() {
   const [todayScore, setTodayScore] = useState<DailyScore | null>(null)
@@ -138,51 +140,10 @@ export default function DashboardPage() {
     return quotes[randomIndex];
   };
   
-  // Function to get user badges based on achievements
-  const getUserBadges = () => {
-    const badges = [];
-    
-    // 7-Day Streak Badge
-    if (streak >= 7) {
-      badges.push({ 
-        id: "7-day-streak", 
-        name: "7-Day Streak", 
-        description: "Maintained 7 days of 70%+ scores", 
-        icon: Trophy,
-        color: "bg-yellow-100 text-yellow-800",
-        borderColor: "border-yellow-200"
-      });
-    }
-    
-    // Early Bird Badge (if user has tasks completed early in the day)
-    // For now, we'll award it if the user has a good streak
-    if (streak >= 3) {
-      badges.push({ 
-        id: "early-bird", 
-        name: "Early Bird", 
-        description: "Started strong with 3+ day streak", 
-        icon: Zap,
-        color: "bg-blue-100 text-blue-800",
-        borderColor: "border-blue-200"
-      });
-    }
-    
-    // Weekend Warrior Badge (if user completes tasks on weekends)
-    const today = new Date();
-    const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
-    if (dayOfWeek === 0 || dayOfWeek === 6) { // Weekend
-      badges.push({ 
-        id: "weekend-warrior", 
-        name: "Weekend Warrior", 
-        description: "Staying productive on the weekend", 
-        icon: Star,
-        color: "bg-purple-100 text-purple-800",
-        borderColor: "border-purple-200"
-      });
-    }
-    
-    return badges;
-  };
+  const { unlockedBadges, loading: badgesLoading } = useBadges();
+  
+  // Get the most recently unlocked badges (up to 4 for display)
+  const recentBadges = unlockedBadges.slice(0, 4);
   
   useEffect(() => {
     setMotivationalQuote(getMotivationalQuote());
@@ -304,28 +265,39 @@ export default function DashboardPage() {
       
       {/* Achievements & Badges */}
       <div className="p-6 border rounded-lg bg-card">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Trophy className="h-5 w-5 text-yellow-500" />
-          Your Achievements
-        </h2>
-        <div className="flex flex-wrap gap-3">
-          {getUserBadges().length > 0 ? (
-            getUserBadges().map((badge) => {
-              const Icon = badge.icon;
-              return (
-                <div 
-                  key={badge.id} 
-                  className={`flex flex-col items-center justify-center p-4 rounded-lg border ${badge.color} ${badge.borderColor} min-w-[120px]`}>
-                  <Icon className="h-6 w-6 mb-2" />
-                  <span className="font-medium text-center">{badge.name}</span>
-                  <span className="text-xs text-center text-muted-foreground mt-1">{badge.description}</span>
-                </div>
-              );
-            })
-          ) : (
-            <p className="text-muted-foreground text-center w-full">Complete tasks to earn badges!</p>
-          )}
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-yellow-500" />
+            Your Badges
+          </h2>
+          <Link href="/achievements" className="text-sm text-blue-500 hover:underline">
+            View All
+          </Link>
         </div>
+        {badgesLoading ? (
+          <p className="text-muted-foreground text-center py-4">Loading badges...</p>
+        ) : recentBadges.length > 0 ? (
+          <div className="flex flex-wrap gap-4 justify-center">
+            {recentBadges.map((badge) => (
+              <div key={badge.level} className="flex flex-col items-center">
+                <BadgeDisplay 
+                  level={badge.level} 
+                  size="64x64" 
+                  unlocked={true} 
+                  showLabel={false}
+                />
+                <span className="text-xs mt-2 font-medium text-center max-w-[100px] truncate">
+                  {badge.name}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-muted-foreground mb-2">No badges unlocked yet</p>
+            <p className="text-sm text-muted-foreground">Complete tasks to earn your first badge!</p>
+          </div>
+        )}
       </div>
 
       {/* 7-Day Trend */}

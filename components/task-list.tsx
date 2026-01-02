@@ -4,13 +4,14 @@ import type { Task, TimeEntry } from "@/lib/types"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Trash2, Edit, GripVertical, Clock } from "lucide-react"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { updateTask, deleteTask as deleteTaskFromStorage, getTasksByDate, upsertDailyScore, createTask as createTaskInStorage, upsertDailyLog, getDailyLog, getDailyLogs, saveDailyScores, updateRecoveryTask, clearRecoveryTasks, getRecoveryTasks } from "@/lib/storage"
 import { calculateDailyScore } from "@/lib/score-calculator"
 import { TaskForm } from "@/components/task-form"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { checkAllBadges } from "@/lib/badges"
 
 // DnD Kit imports
 import {
@@ -48,32 +49,36 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
   const [timeDescription, setTimeDescription] = useState<string>("")
 
   // Filter tasks based on recurrence and date conditions
-  const filteredTasks = tasks.filter(task => {
+  const { filteredTasks, sortedTasks } = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
     
-    // If task date is in the future and it's not recurring, don't show it yet
-    if (task.date > today && !task.isRecurring) {
-      return false;
-    }
+    const filtered = tasks.filter(task => {
+      // If task date is in the future and it's not recurring, don't show it yet
+      if (task.date > today && !task.isRecurring) {
+        return false;
+      }
+      
+      // If task is recurring, check if today is one of the recurrence days
+      if (task.isRecurring && task.recurrenceDays) {
+        const todayDay = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+        return !!task.recurrenceDays[todayDay as keyof typeof task.recurrenceDays];
+      }
+      
+      // If task date is today or in the past, show it
+      return task.date <= today;
+    });
     
-    // If task is recurring, check if today is one of the recurrence days
-    if (task.isRecurring && task.recurrenceDays) {
-      const todayDay = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-      return !!task.recurrenceDays[todayDay as keyof typeof task.recurrenceDays];
-    }
+    // Sort by priority first, then by user-defined order
+    const sorted = [...filtered].sort((a, b) => {
+      const priorityOrder = { High: 0, Medium: 1, Low: 2 }
+      const priorityComparison = priorityOrder[a.priority] - priorityOrder[b.priority]
+      if (priorityComparison !== 0) return priorityComparison
+      // If priority is the same, maintain user drag order
+      return 0
+    })
     
-    // If task date is today or in the past, show it
-    return task.date <= today;
-  });
-
-  // Sort by priority first, then by user-defined order
-  const sortedTasks = [...filteredTasks].sort((a, b) => {
-    const priorityOrder = { High: 0, Medium: 1, Low: 2 }
-    const priorityComparison = priorityOrder[a.priority] - priorityOrder[b.priority]
-    if (priorityComparison !== 0) return priorityComparison
-    // If priority is the same, maintain user drag order
-    return 0
-  })
+    return { filteredTasks: filtered, sortedTasks: sorted };
+  }, [tasks]);
   
   // DnD Kit sensors
   const sensors = useSensors(
@@ -273,18 +278,12 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
       setTimeDescription("");
     } else {
       // If the task is being marked as incomplete, just update it
-      if (task && task.isRecurring && task.recurrenceDays && completed) {
-        // If it's a recurring task being marked as completed
-        // Create new instances for the next occurrence dates
-        createNextRecurrenceInstances(task)
-      }
-      
       // If it's a recovery task being marked as completed, check if all recovery tasks are done
       if (task && task.isRecovery) {
         updateRecoveryTask(taskId, { completed });
         
         // Check if all recovery tasks are completed
-        const allRecoveryTasks = tasks.filter(t => t.isRecovery);
+        const allRecoveryTasks = getRecoveryTasks();
         const allCompleted = allRecoveryTasks.every(t => t.completed);
         
         // If all recovery tasks are completed, clear them
@@ -295,7 +294,18 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
         updateTask(taskId, { completed });
       }
       
+      // Handle recurring tasks after updating the task
+      if (task && task.isRecurring && task.recurrenceDays && completed) {
+        // If it's a recurring task being marked as completed
+        // Create new instances for the next occurrence dates
+        createNextRecurrenceInstances(task)
+      }
+      
       recalculateDailyScore()
+      
+      // Check for newly unlocked badges
+      checkAllBadges();
+      
       setLoading(null)
       onTaskUpdated?.()
     }
@@ -367,12 +377,16 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
     
     upsertDailyLog(dailyLog);
     
-    // Handle recurring tasks
+    // Handle recurring tasks after updating the task
     if (timeTrackingTask.isRecurring && timeTrackingTask.recurrenceDays) {
       createNextRecurrenceInstances(timeTrackingTask);
     }
     
     recalculateDailyScore();
+        
+    // Check for newly unlocked badges
+    checkAllBadges();
+        
     setLoading(null);
     setTimeTrackingTask(null);
     setTimeSpent(0);
@@ -400,14 +414,13 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
       
       if (task.recurrenceDays[dayOfWeek as keyof typeof task.recurrenceDays]) {
         // Create a new instance of the task for this date
-        const newTask = {
+        const newTask: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'user_id'> = {
           ...task,
-          id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Generate new ID
           date: nextDate.toISOString().split('T')[0],
           completed: false, // New instances are not completed
-          isRecurring: undefined, // Remove recurrence flag from new instance
+          isRecurring: false, // New instances are not recurring to avoid infinite loop
           recurrenceDays: undefined, // Remove recurrence days from new instance
-          priority_weight: task.priority_weight || 0, // Preserve priority weight
+          priority_weight: task.priority_weight || (task.priority === 'High' ? 3 : task.priority === 'Medium' ? 2 : 1), // Preserve priority weight
         }
         
         // Create the new task
@@ -420,6 +433,10 @@ export function TaskList({ tasks, onTaskUpdated }: TaskListProps) {
     setLoading(taskId)
     deleteTaskFromStorage(taskId)
     recalculateDailyScore()
+    
+    // Check for newly unlocked badges
+    checkAllBadges();
+    
     setLoading(null)
     onTaskUpdated?.()
   }
