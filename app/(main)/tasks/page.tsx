@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { TaskForm } from "@/components/task-form"
 import { TaskList } from "@/components/task-list"
 import { PrioritySliders } from "@/components/priority-sliders"
-import { getTasksByDate, getRecoveryTasks, isStreakBroken, generateRecoveryTasks, saveRecoveryTasks } from "@/lib/storage"
+import { getTasks, getRecoveryTasks, isStreakBroken, generateRecoveryTasks, saveRecoveryTasks } from "@/lib/storage"
 import type { Task } from "@/lib/types"
 import { checkAllBadges } from "@/lib/badges"
 
@@ -15,10 +15,10 @@ export default function TasksPage() {
     const today = new Date().toISOString().split("T")[0]
     
     // Read from localStorage only once to improve performance
-    const allTasks = getTasksByDate(today);
+    const allTasks = getTasks();
     const recoveryTasks = getRecoveryTasks();
     
-    let todayTasks = allTasks.sort((a, b) => {
+    let todayTasks = allTasks.sort((a: Task, b: Task) => {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     })
     
