@@ -1,15 +1,5 @@
 const CACHE_NAME = 'momentum-tracker-v1';
 const urlsToCache = [
-  '/vigilant-palm-tree/',
-  '/vigilant-palm-tree/dashboard',
-  '/vigilant-palm-tree/tasks',
-  '/vigilant-palm-tree/heatmap',
-  '/vigilant-palm-tree/analytics',
-  '/vigilant-palm-tree/journal',
-  '/vigilant-palm-tree/achievements',
-  '/vigilant-palm-tree/monthly-reports',
-  '/vigilant-palm-tree/coach-insights',
-  '/vigilant-palm-tree/settings',
   '/vigilant-palm-tree/_next/static/css/',
   '/vigilant-palm-tree/_next/static/js/',
   '/vigilant-palm-tree/assets/',
@@ -30,7 +20,13 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Return cached version if available, otherwise fetch from network
+        // Check if this is an HTML request (text/html)
+        if (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html')) {
+          // For HTML requests, always fetch from network to get the latest version
+          return fetch(event.request);
+        }
+        
+        // Return cached version if available for non-HTML requests, otherwise fetch from network
         if (response) {
           return response;
         }
@@ -48,8 +44,10 @@ self.addEventListener('fetch', (event) => {
 
           caches.open(CACHE_NAME)
             .then((cache) => {
-              // Only cache requests that start with our app's path
-              if (event.request.url.includes('/vigilant-palm-tree/')) {
+              // Only cache non-HTML requests that start with our app's path
+              if (event.request.url.includes('/vigilant-palm-tree/') && 
+                  !event.request.url.includes('.html') &&
+                  !event.request.headers.get('accept')?.includes('text/html')) {
                 cache.put(event.request, responseToCache);
               }
             });
